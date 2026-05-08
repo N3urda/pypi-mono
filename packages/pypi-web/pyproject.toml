@@ -1,0 +1,19 @@
+[project]
+name = "pypi-web"
+version = "0.0.1"
+description = "Web UI and API for pypi agent"
+requires-python = ">=3.10"
+dependencies = [
+    "pypi-ai",
+    "pypi-agent",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.30.0",
+    "websockets>=12.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pypi_web"]

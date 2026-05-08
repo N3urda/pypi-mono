@@ -1,194 +1,204 @@
-# PI Agent - MemorySearch
+# pypi-mono
 
-一个基于 Python 构建的智能对话 Agent，集成了 MemorySearch 工具，支持多用户后台服务。
+A Python AI Agent framework with unified LLM API abstraction, migrated from [pi-mono](https://github.com/nicknisi/pi) TypeScript project.
 
-## 项目概述
+## Overview
 
-PI Agent 是一个功能强大的 AI 对话代理系统，核心特性包括：
+pypi-mono is a Python monorepo that provides:
+- **pypi-ai**: Unified LLM API abstraction with multi-provider support
+- **pypi-agent**: Agent runtime with tool execution loop
+- **pypi-cli**: Interactive coding agent CLI
+- **pypi-tui**: Terminal UI components
+- **pypi-web**: Web UI and API
 
-- **MemorySearch 工具**：智能记忆检索，支持语义搜索和关键词匹配
-- **多用户支持**：完整的用户隔离机制，确保数据安全
-- **历史对话管理**：持久化存储用户对话记录，支持会话恢复
-- **后台服务架构**：可部署为独立的后台应用服务
+## Features
 
-## 系统架构
+### Unified LLM API (pypi-ai)
+- Stream responses from multiple providers (Anthropic, OpenAI, Google, Mistral)
+- Event stream protocol for streaming text/thinking/tool calls
+- Token and cost tracking
+- Lazy-loaded providers for efficiency
+
+### Agent Runtime (pypi-agent)
+- Agent loop with turn management
+- Parallel and sequential tool execution modes
+- Before/after tool execution hooks
+- State management with message history
+
+### CLI Application (pypi-cli)
+- Interactive REPL mode
+- Single-prompt mode
+- Built-in tools: Bash, Read, Write, Edit
+- Session persistence
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                     pypi-cli                         │
+│              (Interactive coding agent)              │
+├─────────────────────────────────────────────────────┤
+│                    pypi-agent                        │
+│          (Agent runtime, tool execution)             │
+├─────────────────────────────────────────────────────┤
+│                     pypi-ai                          │
+│      (Unified LLM API, streaming, providers)         │
+└─────────────────────────────────────────────────────┘
+```
+
+## Project Structure
 
 ```
 pypi-mono/
-├── agent/                 # Agent 核心逻辑
-│   ├── __init__.py
-│   ├── core.py           # Agent 主类
-│   └── tools/            # 工具集
-│       ├── __init__.py
-│       └── memory_search.py  # MemorySearch 工具实现
-├── api/                   # API 接口层
-│   ├── __init__.py
-│   └── routes.py         # 路由定义
-├── storage/              # 数据存储层
-│   ├── __init__.py
-│   ├── database.py       # 数据库连接管理
-│   └── models.py         # 数据模型定义
-├── services/             # 业务服务层
-│   ├── __init__.py
-│   ├── user_service.py   # 用户管理服务
-│   └── chat_service.py   # 对话管理服务
-├── config/               # 配置管理
-│   ├── __init__.py
-│   └── settings.py       # 应用配置
-├── tests/                # 测试用例
-├── requirements.txt      # 依赖列表
+├── packages/
+│   ├── pypi-ai/           # LLM API abstraction layer
+│   │   ├── src/pypi_ai/
+│   │   │   ├── types.py       # Core types (Pydantic)
+│   │   │   ├── event_stream.py # Event stream protocol
+│   │   │   ├── registry.py    # Provider registry
+│   │   │   ├── stream.py      # Public API
+│   │   │   └── providers/     # Provider implementations
+│   │   └── tests/
+│   ├── pypi-agent/        # Agent runtime
+│   │   ├── src/pypi_agent/
+│   │   │   ├── types.py       # Agent types
+│   │   │   ├── state.py       # Agent state
+│   │   │   └── loop.py        # Agent loop
+│   │   └── tests/
+│   ├── pypi-cli/          # CLI application
+│   │   ├── src/pypi_cli/
+│   │   │   ├── cli.py         # CLI entry point
+│   │   │   ├── config.py      # Configuration
+│   │   │   ├── session.py     # Session management
+│   │   │   └── tools/         # Built-in tools
+│   │   └── tests/
+│   ├── pypi-tui/          # Terminal UI
+│   └── pypi-web/          # Web UI/API
+├── pyproject.toml         # Workspace config
 └── README.md
 ```
 
-## 核心功能
-
-### 1. MemorySearch 工具
-
-MemorySearch 是一个智能记忆检索工具，具备以下能力：
-
-- **语义搜索**：基于向量相似度的智能匹配
-- **关键词搜索**：精确关键词匹配
-- **时间范围过滤**：按日期范围检索历史记录
-- **用户隔离**：确保搜索结果仅限当前用户数据
-
-### 2. 多用户支持
-
-- 独立的用户会话管理
-- 用户级别的对话历史隔离
-- 支持并发请求处理
-- 安全的认证与授权机制
-
-### 3. 历史对话管理
-
-- 持久化存储所有对话记录
-- 支持会话恢复与继续
-- 对话历史导出功能
-- 按时间、主题检索历史对话
-
-## 快速开始
-
-### 环境要求
-
-- Python 3.10+
-- SQLite / PostgreSQL（可选）
-
-### 安装
+## Installation
 
 ```bash
-# 克隆仓库
-git clone <repository-url>
+# Clone the repository
+git clone https://github.com/yourorg/pypi-mono
 cd pypi-mono
 
-# 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或 venv\Scripts\activate  # Windows
+# Install with uv
+uv sync
 
-# 安装依赖
-pip install -r requirements.txt
+# Or install packages individually
+pip install pypi-ai pypi-agent pypi-cli
 ```
 
-### 配置
+## Quick Start
+
+### Using the CLI
 
 ```bash
-# 复制配置模板
-cp config/settings.example.py config/settings.py
+# Interactive mode
+pypi
 
-# 编辑配置文件，设置必要的参数
-# - API Keys
-# - 数据库连接信息
-# - 日志级别等
+# Single prompt
+pypi "Write a Python function to calculate fibonacci"
+
+# Specify model
+pypi --model claude-sonnet-4-20250514 --provider anthropic "Explain async/await"
 ```
 
-### 运行
+### Using pypi-ai
 
-```bash
-# 启动后台服务
-python -m api.routes
+```python
+from pypi_ai import stream_simple, get_model, Context
 
-# 或使用 uvicorn（推荐）
-uvicorn api.routes:app --host 0.0.0.0 --port 8000
+# Create model
+model = get_model("anthropic", "claude-sonnet-4-20250514")
+
+# Create context
+context = Context(
+    system_prompt="You are a helpful assistant.",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+
+# Stream response
+async for event in stream_simple(model, context):
+    if event.type == "text_delta":
+        print(event.delta, end="")
+    elif event.type == "done":
+        print("\n---")
 ```
 
-## API 接口
+### Using pypi-agent
 
-### 用户管理
+```python
+from pypi_agent import AgentState, agent_loop, AgentTool
+from pypi_ai import get_model
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/users/register` | POST | 用户注册 |
-| `/api/users/login` | POST | 用户登录 |
-| `/api/users/logout` | POST | 用户登出 |
+# Create agent state
+state = AgentState(
+    model=get_model("anthropic", "claude-sonnet-4"),
+    system_prompt="You are a coding assistant.",
+)
 
-### 对话管理
+# Run agent loop
+async for event in agent_loop([user_message], context, config):
+    print(event)
+```
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/chat/sessions` | GET | 获取用户所有会话 |
-| `/api/chat/sessions/{id}` | GET | 获取指定会话详情 |
-| `/api/chat/message` | POST | 发送消息 |
-| `/api/chat/history` | GET | 获取对话历史 |
+## Supported Providers
 
-### MemorySearch
+| Provider | SDK | API Type |
+|----------|-----|----------|
+| Anthropic | anthropic | Messages API |
+| OpenAI | openai | Chat Completions |
+| OpenAI-compatible | openai | Chat Completions |
+| Google | google-generativeai | Gemini API |
+| Mistral | mistralai | Conversations API |
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/memory/search` | POST | 执行记忆搜索 |
-| `/api/memory/index` | POST | 索引新记忆 |
+## Configuration
 
-## 技术栈
+Settings are stored in `~/.pypi/settings.json`:
 
-- **语言**: Python 3.10+
-- **Web 框架**: FastAPI / Flask
-- **数据库**: SQLite（开发）/ PostgreSQL（生产）
-- **向量存储**: FAISS / ChromaDB
-- **AI SDK**: OpenAI / Anthropic SDK
+```json
+{
+  "default_model": "claude-sonnet-4-20250514",
+  "default_provider": "anthropic",
+  "temperature": 0.7,
+  "max_tokens": 4096
+}
+```
 
-## 开发指南
+API keys can be set via environment variables:
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `GOOGLE_API_KEY`
+- `MISTRAL_API_KEY`
 
-### 代码风格
-
-本项目遵循 PEP 8 规范，使用以下工具保证代码质量：
+## Development
 
 ```bash
-# 代码格式化
-black .
+# Run tests
+pytest
 
-# 代码检查
+# Type checking
+mypy packages/
+
+# Linting
 ruff check .
-
-# 类型检查
-mypy .
 ```
 
-### 测试
+## Migration from pi-mono
 
-```bash
-# 运行所有测试
-pytest tests/
+This project migrates the TypeScript [pi-mono](https://github.com/nicknisi/pi) framework to Python:
 
-# 带覆盖率报告
-pytest tests/ --cov=. --cov-report=html
-```
+| TypeScript | Python |
+|------------|--------|
+| TypeBox | Pydantic v2 |
+| AsyncIterable | AsyncIterator |
+| Map<string, Provider> | Dict[Api, Provider] |
+| AbortSignal | asyncio.CancelledError |
 
-### 提交规范
-
-使用 Conventional Commits 格式：
-
-```
-<type>: <description>
-
-# type: feat, fix, refactor, docs, test, chore
-```
-
-## 许可证
+## License
 
 MIT License
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request。
-
-## 联系方式
-
-如有问题，请提交 Issue 或联系维护者。

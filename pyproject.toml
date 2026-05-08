@@ -1,0 +1,70 @@
+[project]
+name = "pypi-mono"
+version = "0.0.1"
+description = "Python AI Agent framework with unified LLM API abstraction"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "pypi-mono contributors" }]
+keywords = ["ai", "agent", "llm", "claude", "gpt", "gemini"]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+pypi-ai = { workspace = true }
+pypi-agent = { workspace = true }
+pypi-cli = { workspace = true }
+pypi-tui = { workspace = true }
+pypi-web = { workspace = true }
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "mypy>=1.10.0",
+    "ruff>=0.5.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["packages"]
+pythonpath = ["packages/pypi-ai/src", "packages/pypi-agent/src", "packages/pypi-cli/src"]
+addopts = "-v --tb=short --cov=packages --cov-report=term-missing --cov-fail-under=80"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pypi_ai", "pypi_agent", "pypi_cli", "pypi_tui", "pypi_web"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "anthropic.*,openai.*,google.*,mistralai.*"
+ignore_missing_imports = true

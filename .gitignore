@@ -70,7 +70,6 @@ cython_debug/
 # IDE / Editor configurations
 .idea/
 .vscode/
-.claude/
 .trae/
 .sublime-project
 .sublime-workspace
