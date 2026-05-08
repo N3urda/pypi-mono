@@ -19,6 +19,7 @@ from pypi_agent.types import (
     BeforeToolCallResult,
     AfterToolCallResult,
     ToolExecutionMode,
+    AgentToolUpdateCallback,
 )
 from pypi_ai.types import (
     Model,

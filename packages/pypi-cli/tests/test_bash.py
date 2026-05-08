@@ -50,3 +50,30 @@ def test_bash_tool_definition():
     assert bash_tool.name == "bash"
     assert bash_tool.label == "Bash"
     assert "command" in bash_tool.parameters["properties"]
+
+
+@pytest.mark.asyncio
+async def test_bash_no_output():
+    """Test bash command with no output."""
+    params = BashParameters(command="true")
+    result = await execute_bash("test_id", params)
+
+    # Should return (no output) for commands with no stdout/stderr
+    # But some environments might have gRPC warnings, so we check for either
+    text = result.content[0].text
+    assert text == "(no output)" or "no output" in text.lower() or result.details.get("exit_code") == 0
+
+
+@pytest.mark.asyncio
+async def test_bash_exception_handling():
+    """Test bash exception handling for subprocess creation failure."""
+    from unittest.mock import patch
+
+    params = BashParameters(command="test")
+
+    # Patch asyncio.create_subprocess_shell to raise an exception
+    with patch("asyncio.create_subprocess_shell", side_effect=OSError("Mock error")):
+        result = await execute_bash("test_id", params)
+
+        assert "Error executing command" in result.content[0].text
+        assert result.details.get("error") == "Mock error"

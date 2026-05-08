@@ -189,3 +189,43 @@ def test_lazy_loader_caches_result():
 
     # Should only load once
     assert load_count[0] == 1
+
+
+def test_clear_builtin_providers():
+    """Test clear_builtin_providers function."""
+    from pypi_ai.providers.register_builtins import clear_builtin_providers, register_builtin_providers
+    from pypi_ai.registry import get_all_providers
+
+    # Ensure providers are registered
+    register_builtin_providers()
+    first_count = len(get_all_providers())
+
+    # Clear and re-register
+    clear_builtin_providers()
+    second_count = len(get_all_providers())
+
+    # Should have same count after clear and re-register
+    assert second_count == first_count
+
+
+def test_unregister_lazy_provider():
+    """Test unregistering a lazy provider."""
+    from pypi_ai.registry import register_lazy_provider, unregister_provider, get_provider, clear_providers
+
+    clear_providers()
+
+    loaded = [False]
+
+    def loader():
+        loaded[0] = True
+        return type("MockProvider", (), {"api": Api.ANTHROPIC_MESSAGES})()
+
+    register_lazy_provider(Api.ANTHROPIC_MESSAGES, loader)
+
+    # Unregister before loading
+    result = unregister_provider(Api.ANTHROPIC_MESSAGES)
+    assert result is True
+
+    # Provider should be gone
+    assert get_provider(Api.ANTHROPIC_MESSAGES) is None
+    assert not loaded[0]  # Should never have been loaded

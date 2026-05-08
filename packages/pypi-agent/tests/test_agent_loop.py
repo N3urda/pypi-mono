@@ -635,3 +635,262 @@ async def test_run_loop_with_steering_messages(model, mock_assistant_message):
     assert steering_called[0]
     # Should be called at least twice due to steering message
     assert call_count[0] >= 2
+
+
+@pytest.mark.asyncio
+async def test_run_loop_should_stop_context(model, mock_assistant_message):
+    """Test run_loop with should_stop_after_turn receiving context."""
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[UserMessage(content="Hello")],
+    )
+
+    received_ctx = [None]
+
+    async def should_stop(ctx):
+        received_ctx[0] = ctx
+        return True
+
+    config = _create_config(model, should_stop_after_turn=should_stop)
+    events = []
+
+    with patch("pypi_agent.loop.stream_simple", return_value=_create_mock_stream(mock_assistant_message)):
+        await run_loop(context, [], config, None, _create_emit(events))
+
+    # Verify context was passed correctly
+    assert received_ctx[0] is not None
+    assert hasattr(received_ctx[0], 'message')
+    assert hasattr(received_ctx[0], 'tool_results')
+    assert hasattr(received_ctx[0], 'context')
+    assert hasattr(received_ctx[0], 'new_messages')
+
+
+@pytest.mark.asyncio
+async def test_run_loop_should_stop_false(model, mock_assistant_message):
+    """Test run_loop with should_stop_after_turn returning False."""
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[UserMessage(content="Hello")],
+    )
+
+    call_count = [0]
+
+    async def should_stop(ctx):
+        call_count[0] += 1
+        return call_count[0] >= 2  # Stop after 2 calls
+
+    config = _create_config(model, should_stop_after_turn=should_stop)
+    events = []
+
+    call_count_stream = [0]
+
+    def mock_stream_fn(*args, **kwargs):
+        call_count_stream[0] += 1
+        return _create_mock_stream(mock_assistant_message)
+
+    with patch("pypi_agent.loop.stream_simple", side_effect=mock_stream_fn):
+        await run_loop(context, [], config, None, _create_emit(events))
+
+    # Should have been called at least once
+    assert call_count[0] >= 1
+
+
+@pytest.mark.asyncio
+async def test_run_loop_steering_adds_messages(model, mock_assistant_message):
+    """Test run_loop with steering messages being added."""
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[UserMessage(content="Hello")],
+    )
+
+    steering_count = [0]
+
+    async def get_steering():
+        steering_count[0] += 1
+        if steering_count[0] == 1:
+            return [UserMessage(content="Steering message")]
+        return None
+
+    config = _create_config(model, get_steering_messages=get_steering)
+    events = []
+
+    call_count = [0]
+
+    def mock_stream_fn(*args, **kwargs):
+        call_count[0] += 1
+        return _create_mock_stream(mock_assistant_message)
+
+    with patch("pypi_agent.loop.stream_simple", side_effect=mock_stream_fn):
+        await run_loop(context, [], config, None, _create_emit(events))
+
+    # Steering should have been checked
+    assert steering_count[0] >= 1
+
+
+@pytest.mark.asyncio
+async def test_run_loop_steering_none(model, mock_assistant_message):
+    """Test run_loop with steering returning None."""
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[UserMessage(content="Hello")],
+    )
+
+    async def get_steering():
+        return None
+
+    config = _create_config(model, get_steering_messages=get_steering)
+    events = []
+
+    with patch("pypi_agent.loop.stream_simple", return_value=_create_mock_stream(mock_assistant_message)):
+        await run_loop(context, [], config, None, _create_emit(events))
+
+    # Should complete without issues
+    assert True
+
+
+@pytest.mark.asyncio
+async def test_run_loop_with_tools_and_should_stop(model):
+    """Test run_loop with tool calls and should_stop_after_turn."""
+    async def execute_fn(tool_id, args, signal):
+        return AgentToolResult(
+            content=[TextContent(type="text", text="Tool result")],
+        )
+
+    tool = AgentTool(
+        name="test_tool",
+        description="Test",
+        parameters={"type": "object"},
+        execute=execute_fn,
+    )
+
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[UserMessage(content="Hello")],
+        tools=[tool],
+    )
+
+    assistant_with_tool = AssistantMessage(
+        role="assistant",
+        content=[
+            TextContent(type="text", text="Using tool"),
+            ToolCall(
+                type="toolCall",
+                id="call_1",
+                name="test_tool",
+                arguments={"arg": "value"},
+            ),
+        ],
+        api=Api.ANTHROPIC_MESSAGES,
+        provider="anthropic",
+        model="test",
+        usage=Usage(),
+        stop_reason=StopReason.TOOL_USE,
+    )
+
+    stop_called = [False]
+
+    async def should_stop(ctx):
+        stop_called[0] = True
+        return True
+
+    call_count = [0]
+
+    def mock_stream_fn(*args, **kwargs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return _create_mock_stream(assistant_with_tool)
+        else:
+            final_msg = AssistantMessage(
+                role="assistant",
+                content=[TextContent(type="text", text="Final")],
+                api=Api.ANTHROPIC_MESSAGES,
+                provider="anthropic",
+                model="test",
+                usage=Usage(),
+                stop_reason=StopReason.END,
+            )
+            return _create_mock_stream(final_msg)
+
+    config = _create_config(model, should_stop_after_turn=should_stop)
+    events = []
+
+    with patch("pypi_agent.loop.stream_simple", side_effect=mock_stream_fn):
+        await run_loop(context, [], config, None, _create_emit(events))
+
+    assert stop_called[0]
+
+
+@pytest.mark.asyncio
+async def test_run_loop_with_tools_and_steering(model):
+    """Test run_loop with tool calls and get_steering_messages."""
+    async def execute_fn(tool_id, args, signal):
+        return AgentToolResult(
+            content=[TextContent(type="text", text="Tool result")],
+        )
+
+    tool = AgentTool(
+        name="test_tool",
+        description="Test",
+        parameters={"type": "object"},
+        execute=execute_fn,
+    )
+
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[UserMessage(content="Hello")],
+        tools=[tool],
+    )
+
+    assistant_with_tool = AssistantMessage(
+        role="assistant",
+        content=[
+            TextContent(type="text", text="Using tool"),
+            ToolCall(
+                type="toolCall",
+                id="call_1",
+                name="test_tool",
+                arguments={"arg": "value"},
+            ),
+        ],
+        api=Api.ANTHROPIC_MESSAGES,
+        provider="anthropic",
+        model="test",
+        usage=Usage(),
+        stop_reason=StopReason.TOOL_USE,
+    )
+
+    steering_called = [False]
+    steering_count = [0]
+
+    async def get_steering():
+        steering_count[0] += 1
+        if steering_count[0] == 1:
+            steering_called[0] = True
+            return [UserMessage(content="Steering")]
+        return None
+
+    call_count = [0]
+
+    def mock_stream_fn(*args, **kwargs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return _create_mock_stream(assistant_with_tool)
+        else:
+            final_msg = AssistantMessage(
+                role="assistant",
+                content=[TextContent(type="text", text="Final")],
+                api=Api.ANTHROPIC_MESSAGES,
+                provider="anthropic",
+                model="test",
+                usage=Usage(),
+                stop_reason=StopReason.END,
+            )
+            return _create_mock_stream(final_msg)
+
+    config = _create_config(model, get_steering_messages=get_steering)
+    events = []
+
+    with patch("pypi_agent.loop.stream_simple", side_effect=mock_stream_fn):
+        await run_loop(context, [], config, None, _create_emit(events))
+
+    assert steering_called[0]

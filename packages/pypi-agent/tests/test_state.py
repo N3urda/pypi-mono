@@ -36,6 +36,21 @@ def test_agent_state_with_model(model):
     assert state.model.id == "test-model"
 
 
+def test_agent_state_model_setter(model):
+    """Test AgentState model setter directly."""
+    state = AgentState()
+
+    # Test setting model via setter (line 72)
+    state.model = model
+    assert state.model is not None
+    assert state.model.id == "test-model"
+
+    # Test setting to different model
+    new_model = Model(id="new-model", api=Api.ANTHROPIC_MESSAGES, provider="anthropic")
+    state.model = new_model
+    assert state.model.id == "new-model"
+
+
 def test_agent_state_system_prompt():
     """Test system prompt property."""
     state = AgentState()

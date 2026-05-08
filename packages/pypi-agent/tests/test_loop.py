@@ -313,3 +313,58 @@ async def test_execute_tool_with_after_hook_error():
     result = await execute_tool(tool_call, context, config, None, lambda e: None)
 
     assert result.is_error is True
+
+@pytest.mark.asyncio
+async def test_execute_tool_with_before_hook_blocks():
+    """Test execute_tool with before_tool_call hook that blocks."""
+    async def execute_fn(tool_id, args, signal):
+        return AgentToolResult(
+            content=[TextContent(type="text", text="Should not run")],
+        )
+
+    tool = AgentTool(
+        name="test_tool",
+        description="Test",
+        parameters={"type": "object"},
+        execute=execute_fn,
+    )
+
+    context = AgentContext(
+        system_prompt="Test",
+        messages=[AssistantMessage(
+            content=[],
+            api=Api.ANTHROPIC_MESSAGES,
+            provider="anthropic",
+            model="test",
+            usage=Usage(),
+            stop_reason=StopReason.END,
+        )],
+        tools=[tool],
+    )
+
+    model = Model(id="test", api=Api.ANTHROPIC_MESSAGES, provider="anthropic")
+
+    async def before_hook(ctx, signal):
+        return BeforeToolCallResult(
+            block=True,
+            reason="Blocked for testing",
+        )
+
+    config = AgentLoopConfig(
+        model=model,
+        convert_to_llm=lambda m: m,
+        before_tool_call=before_hook,
+    )
+
+    tool_call = ToolCall(
+        type="toolCall",
+        id="call_1",
+        name="test_tool",
+        arguments={"arg": "value"},
+    )
+
+    events = []
+    result = await execute_tool(tool_call, context, config, None, lambda e: events.append(e))
+
+    assert result.is_error is True
+    assert "Blocked" in result.content[0].text

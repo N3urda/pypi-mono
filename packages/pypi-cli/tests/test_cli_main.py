@@ -231,3 +231,61 @@ async def test_run_single_prompt_with_tool_event():
 
         with patch("rich.console.Console.print"):
             await run_single_prompt("Hello", "claude-sonnet-4-20250514", "anthropic")
+
+
+def test_main_module_entry():
+    """Test __main__ module entry point."""
+    import sys
+    import importlib
+
+    # Mock sys.argv and asyncio.run
+    with patch("sys.argv", ["pypi-cli"]):
+        with patch("asyncio.run") as mock_run:
+            # Import and run the module
+            import pypi_cli.cli as cli_module
+            # The module should have __main__ guard
+            assert hasattr(cli_module, "main")
+            # Test calling main directly
+            result = cli_module.main()
+            assert result == 0 or result is None
+
+
+def test_cli_text_printing():
+    """Test CLI interactive mode text printing."""
+    from pypi_cli.cli import run_single_prompt
+    from pypi_ai.types import AssistantMessage, TextContent, StopReason, Usage
+
+    with patch("pypi_cli.cli.agent_loop") as mock_loop:
+        # Create mock message with text content
+        mock_message = MagicMock()
+        mock_message.content = [MagicMock(type="text", text="Hello!")]
+
+        async def mock_gen():
+            yield MagicMock(type="message_end", message=mock_message)
+            yield MagicMock(type="agent_end", messages=[])
+
+        mock_loop.return_value = mock_gen()
+
+        with patch("rich.console.Console.print"):
+            import asyncio
+            asyncio.run(run_single_prompt("Hello", "claude-sonnet-4-20250514", "anthropic"))
+
+
+def test_cli_tool_execution_event():
+    """Test CLI handling tool execution event."""
+    from pypi_cli.cli import run_single_prompt
+
+    with patch("pypi_cli.cli.agent_loop") as mock_loop:
+        mock_message = MagicMock()
+        mock_message.content = []
+
+        async def mock_gen():
+            yield MagicMock(type="tool_execution_start", tool_name="bash")
+            yield MagicMock(type="message_end", message=mock_message)
+            yield MagicMock(type="agent_end", messages=[])
+
+        mock_loop.return_value = mock_gen()
+
+        with patch("rich.console.Console.print"):
+            import asyncio
+            asyncio.run(run_single_prompt("Hello", "claude-sonnet-4-20250514", "anthropic"))
