@@ -1,0 +1,23 @@
+# CODEOWNERS - Define code ownership and required reviewers
+
+# Default owners for everything
+* @N3urda
+
+# Python package files
+/pyproject.toml @N3urda
+/setup.py @N3urda
+/setup.cfg @N3urda
+
+# GitHub configuration
+/.github/ @N3urda
+
+# CI/CD
+/.github/workflows/ @N3urda
+
+# Documentation
+/README.md @N3urda
+/SECURITY.md @N3urda
+/CONTRIBUTING.md @N3urda
+
+# Tests
+/tests/ @N3urda
