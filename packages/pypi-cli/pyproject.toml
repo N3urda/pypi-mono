@@ -1,0 +1,30 @@
+[project]
+name = "pypi-cli"
+version = "0.0.1"
+description = "Interactive coding agent CLI"
+requires-python = ">=3.10"
+dependencies = [
+    "pypi-ai",
+    "pypi-agent",
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",
+    "prompt-toolkit>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "mypy>=1.10.0",
+]
+
+[project.scripts]
+pypi = "pypi_cli.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pypi_cli"]
